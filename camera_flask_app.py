@@ -6,11 +6,10 @@ import numpy as np
 from threading import Thread
 
 
-global capture,rec_frame, grey, switch, neg, face, rec, out 
+global capture,rec_frame, grey, switch, neg, rec, out 
 capture=0
 grey=0
 neg=0
-face=0
 switch=1
 rec=0
 
@@ -35,39 +34,11 @@ def record(out):
         time.sleep(0.05)
         out.write(rec_frame)
 
-
-def detect_face(frame):
-    global net
-    (h, w) = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), 1.0,
-        (300, 300), (104.0, 177.0, 123.0))   
-    net.setInput(blob)
-    detections = net.forward()
-    confidence = detections[0, 0, 0, 2]
-
-    if confidence < 0.5:            
-            return frame           
-
-    box = detections[0, 0, 0, 3:7] * np.array([w, h, w, h])
-    (startX, startY, endX, endY) = box.astype("int")
-    try:
-        frame=frame[startY:endY, startX:endX]
-        (h, w) = frame.shape[:2]
-        r = 480 / float(h)
-        dim = ( int(w * r), 480)
-        frame=cv2.resize(frame,dim)
-    except Exception as e:
-        pass
-    return frame
- 
-
 def gen_frames():  # generate frame by frame from camera
     global out, capture,rec_frame
     while True:
         success, frame = camera.read() 
         if success:
-            if(face):                
-                frame= detect_face(frame)
             if(grey):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             if(neg):
@@ -118,18 +89,11 @@ def tasks():
         elif  request.form.get('neg') == 'Negative':
             global neg
             neg=not neg
-        elif  request.form.get('face') == 'Face Only':
-            global face
-            face=not face 
-            if(face):
-                time.sleep(4)   
         elif  request.form.get('stop') == 'Stop/Start':
-            
             if(switch==1):
                 switch=0
                 camera.release()
                 cv2.destroyAllWindows()
-                
             else:
                 camera = cv2.VideoCapture(0)
                 switch=1
